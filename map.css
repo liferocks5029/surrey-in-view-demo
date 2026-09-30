@@ -62,7 +62,8 @@
 
 
 /* Compact project and directions controls keep everyday places in view. */
-#project-map-card .back-button{font-size:12px;margin-bottom:10px}
+#project-map-card .back-button{display:inline-flex;align-items:center;min-height:44px;padding:10px 14px;font-size:15px;font-weight:600;line-height:1.2;background:#edf5ff;border:1px solid #d5e6f7;border-radius:10px;margin-bottom:10px}
+#project-map-card .back-button:hover{background:#dcecff}
 #map-project-title{font-size:23px;line-height:1.15;margin-bottom:5px}
 #project-address{font-size:11px;line-height:1.35;margin:0 0 7px}
 #project-summary{font-size:13px;line-height:1.4;margin:7px 0}
