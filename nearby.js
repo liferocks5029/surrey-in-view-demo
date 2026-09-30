@@ -34,20 +34,20 @@
     }
     const groups=new Map(),result=[];
     const sport=new Set(['Stadium','Swimming pool','Ice arena','Tennis court','Pickleball court','Basketball court','Soccer field','Baseball field','Cricket field','Volleyball court','Athletics track','Skate park','Bike park','Lacrosse court','Ball hockey court','Sports field','Outdoor recreation']);
-    if(!sport.has(name)&&name!=='Childcare'&&name!=='Park')return places;
+    if(!sport.has(name)&&name!=='Childcare'&&name!=='Park'&&name!=='Bike parking'&&!places.some(place=>place.feature.properties.DISPLAY_SITE_ID))return places;
     for(const place of places){
       const props=place.feature.properties;
-      const childcare=name==='Childcare';
-      const site=String(childcare?props.DISPLAY_SITE_NAME||'':name==='Park'?props.PARK_NAME||props.NAME||'':props.PARK||props.SITE_NAME||'').trim();
+      const childcare=name==='Childcare',bikeParking=name==='Bike parking',reviewedSite=Boolean(props.DISPLAY_SITE_ID);
+      const site=String(childcare||reviewedSite?props.DISPLAY_SITE_NAME||'':name==='Park'?props.PARK_NAME||props.NAME||'':bikeParking?props.ADDRESS||'':props.PARK||props.SITE_NAME||'').trim();
       // Named source sites only: anonymous court labels are not venue identities.
       if(!site){result.push(place);continue;}
-      const key=(childcare?props.DISPLAY_SITE_ID||site:site).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+      const key=(childcare||reviewedSite?props.DISPLAY_SITE_ID||site:site).normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
       const candidates=groups.get(key)||[];
       // Same-named sites in different neighbourhoods must remain separate.
-      const existing=candidates.find(group=>distance(group,place)<2000);
+      const existing=candidates.find(group=>distance(group,place)<(bikeParking?25:2000));
       if(existing){existing.members.push(place);continue;}
-      const feature=childcare?{...place.feature,properties:{...props,ADDRESS:props.DISPLAY_SITE_ADDRESS||props.ADDRESS,SOURCE_URL:props.DISPLAY_SITE_URL||props.SOURCE_URL}}:place.feature;
-      const group={...place,name:site,feature,members:[place]};
+      const feature=childcare||reviewedSite?{...place.feature,properties:{...props,ADDRESS:props.DISPLAY_SITE_ADDRESS||props.ADDRESS,SOURCE_URL:props.DISPLAY_SITE_URL||props.SOURCE_URL}}:place.feature;
+      const group={...place,name:bikeParking?place.name:site,feature,members:[place]};
       candidates.push(group);groups.set(key,candidates);result.push(group);
     }
     return result;

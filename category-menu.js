@@ -43,6 +43,24 @@
       .replace(/\b(?:day|child)\s+care\b/g,'childcare').replace(/\bdaycares?\b/g,'childcare')
       .replace(/[^a-z0-9]+/g,' ').trim().split(/\s+/).map(word=>words[word]||word).join(' ');
   }
+  function destinationGroups(available){
+    const groups=[
+      ['Everyday essentials',['SkyTrain station','Groceries','Pharmacy','Park','Bus stop','Gym','Playground','Hospital']],
+      ['Schools & childcare',['Childcare','Elementary school','Secondary school','Middle school','Combined school','Other school','University','Library']],
+      ['Food & coffee',['Fast food','Restaurant','Coffee shop']],
+      ['Entertainment',['Cinema','Theatre','Concert venue','Bowling alley','Arcade','Family attraction']],
+      ['Shopping',['Clothing store','Department store','Discount store','Office supplies','Hardware store','Furniture store']],
+      ['Services',['Post office','Hotel','Car rental','Recycling & disposal','Border crossing']],
+      ['Neighbourhoods & culture',['Neighbourhood','Museum','Art gallery','Civic destination']],
+      ['Parks & nature',['Regional park','Provincial park','National park']],
+      ['Sports & recreation',['Stadium','Swimming pool','Ice arena','Tennis court','Pickleball court','Basketball court','Soccer field','Baseball field','Cricket field','Volleyball court','Athletics track','Skate park','Bike park','Lacrosse court','Ball hockey court','Sports field','Outdoor recreation']],
+      ['Getting around',['Passenger rail','Bike parking','Airport','Ferry terminal','Carpool location','Park & ride']]
+    ];
+    const known=new Set(groups.flatMap(([,categories])=>categories));
+    const extra=[...available].filter(category=>!known.has(category)).sort();
+    if(extra.length)groups.splice(-2,0,['Other places',extra]);
+    return groups.map(([label,categories])=>[label,categories.filter(category=>available.has(category))]).filter(([,categories])=>categories.length);
+  }
   function filterGroups(groups,query){
     const terms=normalize(query).split(' ').filter(Boolean);
     if(!terms.length)return groups.map(group=>({...group,options:group.options.slice()}));
@@ -149,7 +167,7 @@
     select.closest('details')?.addEventListener('toggle',event=>{if(!event.target.open)close();});
     return {close,input};
   }
-  const api={normalize,filterGroups,mount};
+  const api={normalize,filterGroups,destinationGroups,mount};
   if(typeof module!=='undefined'&&module.exports)module.exports=api;
   root.SurreyCategoryMenu=api;
 })(typeof window!=='undefined'?window:globalThis);
