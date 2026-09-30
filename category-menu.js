@@ -22,6 +22,12 @@
     'Fast food':'quick service restaurant takeout takeaway mcdonalds mcdonald a&w aw burger pizza subway',
     'Restaurant':'restaurants dining dinner lunch boston pizza white spot cactus club earls joey browns',
     'Coffee shop':'coffee cafe cafes espresso tim hortons tims starbucks second cup blenz waves',
+    'Cinema':'movie movies cinema film theatre theater cineplex landmark hollywood 3',
+    'Theatre':'live theatre theater performing arts performance stage drama plays',
+    'Concert venue':'concert live music performance venue ballroom auditorium',
+    'Bowling alley':'bowling lanes tenpin fivepin',
+    'Arcade':'arcade games gaming centre amusement video games',
+    'Family attraction':'family attraction aquarium zoo theme park amusement park water park rides',
     'Post office':'post postal canada post mail parcel stamps',
     'Office supplies':'office stationery printing printer staples',
     'Discount store':'discount dollar store dollarama dollar tree',
@@ -31,7 +37,7 @@
     'Furniture store':'furniture ikea jysk brick leons structube',
     'Neighbourhood':'neighborhood community'
   };
-  const words={groceries:'grocery',daycares:'daycare',schools:'school',universities:'university',colleges:'college',parks:'park',pharmacies:'pharmacy',hospitals:'hospital',libraries:'library',museums:'museum',galleries:'gallery',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stations:'station',trains:'train',gyms:'gym',hotels:'hotel',stores:'store',centers:'centre',centres:'centre',center:'centre',neighborhoods:'neighbourhood',neighbourhoods:'neighbourhood',neighborhood:'neighbourhood',sports:'sport'};
+  const words={groceries:'grocery',daycares:'daycare',schools:'school',universities:'university',colleges:'college',parks:'park',pharmacies:'pharmacy',hospitals:'hospital',libraries:'library',museums:'museum',galleries:'gallery',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stations:'station',trains:'train',gyms:'gym',hotels:'hotel',stores:'store',centers:'centre',centres:'centre',center:'centre',neighborhoods:'neighbourhood',neighbourhoods:'neighbourhood',neighborhood:'neighbourhood',sports:'sport',cinemas:'cinema',movies:'movie',theatres:'theatre',theaters:'theatre',theater:'theatre',concerts:'concert',arcades:'arcade',attractions:'attraction',venues:'venue'};
   function normalize(value){
     return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
       .replace(/\b(?:day|child)\s+care\b/g,'childcare').replace(/\bdaycares?\b/g,'childcare')
