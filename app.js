@@ -4,8 +4,9 @@ const $=id=>document.getElementById(id);
 const radians=Math.PI/180;
 const distance=(a,b)=>{const h=Math.sin((b.lat-a.lat)*radians/2)**2+Math.cos(a.lat*radians)*Math.cos(b.lat*radians)*Math.sin((b.lon-a.lon)*radians/2)**2;return 12742017.6*Math.atan2(Math.sqrt(h),Math.sqrt(Math.max(0,1-h)));};
 const formatDistance=m=>m>=1000?(m/1000).toFixed(2)+' km':Math.round(m)+' m';
+// City-published hosted replica; the legacy gisservices endpoint can be unavailable.
 const configs=[
- {id:'existing-buildings',title:'Existing buildings · 3D',color:'#a3b4a9',kind:'buildings',remote:true,source:'https://gisservices.surrey.ca/arcgis/rest/services/OpenData/MapServer/155',fields:[['NAME','Name'],['LOCATION','Location'],['BUILDING_HEIGHT','Published height (m)'],['STATUS','Published status'],['FACILITY_TYPE','Building type']]},
+ {id:'existing-buildings',title:'Existing buildings · 3D',color:'#a3b4a9',kind:'buildings',remote:true,source:'https://services5.arcgis.com/YRpe0VKTJytZSSIB/arcgis/rest/services/Building%20Footprnts/FeatureServer/0',fields:[['NAME','Name'],['LOCATION','Location'],['BUILDING_HEIGHT','Published height (m)'],['STATUS','Published status'],['FACILITY_TYPE','Building type']]},
  {id:'proposed-buildings',title:'Proposed buildings · sample 3D',color:'#d89a49',kind:'proposed',fields:[['name','Building part'],['project_no','Application'],['storeys','Published storeys'],['height_m','Model height (m)'],['height_basis','Height basis'],['footprint_basis','Footprint basis'],['model_note','Model note']]},
  {id:'developments',title:'Application sites',color:'#668976',kind:'polygon',fields:[['PROJECT_NO','Application'],['STATUS','Status'],['DESCRIPTION','Description']]},
  {id:'bus-routes',title:'Bus routes',color:'#c48147',kind:'line',width:2,fields:[['ROUTE_NO','Route'],['ROUTE_NAME','Route name'],['SERVICE_TYPE','Service type']]},
