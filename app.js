@@ -46,7 +46,7 @@ function drawList(){
   b.append(el('span',p.raw.STAFF_EDITED?p.description:info.headline||(p.raw.STAFF_ADDED?'Staff-added location pin':p.description),'excerpt'));
   b.addEventListener('click',()=>models.length?selectModelProject(p.number):select(p,true));$('projects').append(b);
  }
- if(!matches.length)$('projects').append(el('p','No matches. Try another search or show all applications.','secondary'));
+ if(!matches.length)$('projects').append(el('p','No matches. Try another search or show all 3D projects.','secondary'));
  $('load-more').hidden=limit>=matches.length;
 }
 let filterTimer;
@@ -56,9 +56,9 @@ function updateScope(){
  if(!featuredOnly){pilotFilter='surrey';$('area').value='surrey';}
  $('area').disabled=!featuredOnly||browse!=='developments';areaContext();
  $('scope-examples').setAttribute('aria-pressed',String(featuredOnly));$('scope-all').setAttribute('aria-pressed',String(!featuredOnly));
- $('list-title').textContent=browse==='developments'?(featuredOnly?'Featured projects':'All applications'):configs.find(c=>c.id===browse).title;
+ $('list-title').textContent=browse==='developments'?(featuredOnly?'Featured projects':'All 3D projects'):configs.find(c=>c.id===browse).title;
  $('model-count').hidden=!featuredOnly||browse!=='developments';
- $('list-note').textContent=browse==='developments'?(featuredOnly?pilotFilter==='surrey'?'Public-source projects.':'Public-source projects in this area.':'Public inventory; not the City-selected RFP shortlist.'):'Select a place to see its location.';
+ $('list-note').textContent=browse==='developments'?(featuredOnly?pilotFilter==='surrey'?'Public-source projects.':'Public-source projects in this area.':'Public-source 3D projects.'):'Select a place to see its location.';
 }
 for(const [id,value] of [['scope-examples',true],['scope-all',false]])$(id).addEventListener('click',()=>{featuredOnly=value;$('browse-data').value='developments';$('browse-data').dispatchEvent(new Event('change'));});
 $('browse-data').addEventListener('change',()=>{
@@ -454,6 +454,9 @@ else require(['esri/Map','esri/Basemap','esri/layers/WebTileLayer','esri/views/S
   if(window.__SURREY_DATA)document.querySelectorAll('a[href^="data/"]').forEach(a=>a.href=dataURL(a.getAttribute('href')));
   const failed=results.flatMap((r,i)=>r.status==='rejected'?[configs[i].title]:[]);
   if(!data.developments)throw Error('Development data could not load.');
+  // Keep source records intact on disk; the public catalogue contains modelled sites only.
+  const modelledProjects=new Set((data['proposed-buildings']?.features||[]).map(f=>f.properties.project_no));
+  data.developments={...data.developments,features:data.developments.features.filter(f=>modelledProjects.has(f.properties.PROJECT_NO)||(SurreyPublishing.state.mode==='draft'&&f.properties.STAFF_ADDED))};
   applications=data.developments.features.map(f=>({id:f.properties.OBJECTID,number:f.properties.PROJECT_NO,name:f.properties.DISPLAY_NAME||'',status:f.properties.STATUS,description:f.properties.DESCRIPTION||'',raw:f.properties,feature:f,...centre(f)}));
   applications.sort((a,b)=>distance(a,areas.centre)-distance(b,areas.centre));
   for(const status of [...new Set(applications.map(p=>p.status))].sort())$('status-filter').append(new Option(status,status));
@@ -481,7 +484,7 @@ else require(['esri/Map','esri/Basemap','esri/layers/WebTileLayer','esri/views/S
   const loadFailures=layerResults.flatMap((r,i)=>r.status==='rejected'?[Object.values(layers)[i].title]:[]);
   await view.goTo({target:[areas.centre.lon,areas.centre.lat],scale:14500,tilt:48,heading:325},{animate:false});
   ready=true;setScenario(showProposals);$('compare-existing').disabled=false;$('compare-proposed').disabled=false;renderModelProjects();updateScope();filter();if(selected)drawConnection();clearTimeout(watchdog);$('loading').hidden=true;if(!renderingDependencyFailed)$('map-error').hidden=true;$('loaded-count').textContent=(Object.keys(layers).length-loadFailures.length)+'/'+configs.length;
-  setStatus(applications.length.toLocaleString()+' applications · Public-source demonstration');
+  setStatus(applications.length.toLocaleString()+' modelled projects · Public-source demonstration');
   if(failed.length||loadFailures.length)failure('Unavailable layers: '+[...failed,...loadFailures].join(', ')+'. Other layers remain usable.');
   view.on('click',async event=>{try{if(pickingDestination||measuring){acceptMapPoint(event.mapPoint);return;}const result=await view.hitTest(event,{include:[...Object.values(layers),projectMarkers].filter(l=>l.visible)});const hits=result.results.filter(r=>r.graphic?.layer);const hit=hits.find(r=>r.graphic.layer===layers['proposed-buildings'])||hits.find(r=>r.graphic.layer===projectMarkers)||hits.find(r=>r.graphic.layer===layers.developments)||hits[0];if(!hit)return;const config=configs.find(c=>layers[c.id]===hit.graphic.layer);if(config?.id==='proposed-buildings'){const p=applications.find(p=>p.number===hit.graphic.attributes.project_no);if(p){select(p,false);setStatus('Proposed 3D sample · '+hit.graphic.attributes.name);}return;}if(config?.id==='developments'||hit.graphic.layer===projectMarkers){const p=applications.find(p=>p.number===hit.graphic.attributes.PROJECT_NO);if(p){select(p,false);$('feature-info').hidden=true;}}else if(config)showFeature(config,hit.graphic.attributes);}catch(e){console.error(e);}});
   const requestedProject=new URLSearchParams(location.search).get('project');if(requestedProject){const project=applications.find(p=>p.number===requestedProject);if(project){if(projectModels(project.number).length)selectModelProject(project.number);else select(project,true);}}

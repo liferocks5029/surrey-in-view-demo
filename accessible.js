@@ -147,7 +147,7 @@
       if (items.length) card.append(buildingDetails(items));
       card.append(nearbyDetails(feature)); $('project-list').append(card);
     }
-    if (!matches.length) $('project-list').append(el('p', 'No matches. Try a different search or show all application snapshots.', 'empty'));
+    if (!matches.length) $('project-list').append(el('p', 'No matches. Try a different search or show all 3D projects.', 'empty'));
     $('project-list').setAttribute('aria-busy', 'false');
     if(append)$('project-list').children[previous]?.querySelector('h2')?.focus();
   }
@@ -170,12 +170,11 @@
     placeCoverage.Park={...placeCoverage.Park,label:'Parks'};
     $('revision').textContent = SurreyPublishing.describe() + (profileUnavailable ? ' · Showing application records; project summaries are unavailable.' : '');
 
-    projects = data.developments.features;
+    projects = data.developments.features.filter(feature => models(feature).length > 0 || (SurreyPublishing.state.mode === 'draft' && feature.properties.STAFF_ADDED));
     if (query.get('project')) { $('search').value = query.get('project'); $('filter').value = 'all'; }
     $('search').addEventListener('input', () => { limit = 20; render(); }); $('filter').addEventListener('change', () => { limit = 20; render(); });
     $('more').addEventListener('click', () => { limit += 20; render(true); }); render();
   } catch (error) {
     $('revision').textContent = 'Could not load the list: ' + error.message; $('revision').classList.add('error'); $('revision').setAttribute('role', 'alert'); $('project-list').setAttribute('aria-busy', 'false');
-    if(append)$('project-list').children[previous]?.querySelector('h2')?.focus();
   }
 })();
