@@ -29,6 +29,7 @@
   }
   function mapLink(number) {
     const params = new URLSearchParams({project: number});
+    if (query.get('preview') === 'draft') params.set('preview', 'draft');
     const anchor = el('a', 'View on map ↗', 'map-link'); anchor.href = './?' + params;
     anchor.setAttribute('aria-label', 'View application ' + number + ' on the map'); return anchor;
   }
@@ -169,7 +170,10 @@
     data.parks.features=data.parks.features.filter(SurreyNearby.eligiblePark);
     placeCoverage.Park={...placeCoverage.Park,label:'Parks'};
     $('revision').textContent = SurreyPublishing.describe() + (profileUnavailable ? ' · Showing application records; project summaries are unavailable.' : '');
-
+    if (query.get('preview') === 'draft') {
+      document.querySelectorAll('[data-map-link]').forEach(anchor => { anchor.href = './?preview=draft'; });
+      document.querySelector('[aria-current="page"]').href = 'accessible.html?preview=draft';
+    }
     projects = data.developments.features.filter(feature => models(feature).length > 0 || (SurreyPublishing.state.mode === 'draft' && feature.properties.STAFF_ADDED));
     if (query.get('project')) { $('search').value = query.get('project'); $('filter').value = 'all'; }
     $('search').addEventListener('input', () => { limit = 20; render(); }); $('filter').addEventListener('change', () => { limit = 20; render(); });
