@@ -19,6 +19,16 @@
     'Park & ride':'park and ride transit parking',
     'Car rental':'rental car hire',
     'Recycling & disposal':'recycle waste garbage depot landfill',
+    'Fast food':'quick service restaurant takeout takeaway mcdonalds mcdonald a&w aw burger pizza subway',
+    'Restaurant':'restaurants dining dinner lunch boston pizza white spot cactus club earls joey browns',
+    'Coffee shop':'coffee cafe cafes espresso tim hortons tims starbucks second cup blenz waves',
+    'Post office':'post postal canada post mail parcel stamps',
+    'Office supplies':'office stationery printing printer staples',
+    'Discount store':'discount dollar store dollarama dollar tree',
+    'Clothing store':'clothing clothes apparel fashion h&m hm uniqlo old navy gap zara winners marshalls marks',
+    'Department store':'department general retail simons walmart costco',
+    'Hardware store':'hardware home improvement canadian tire home depot rona tools',
+    'Furniture store':'furniture ikea jysk brick leons structube',
     'Neighbourhood':'neighborhood community'
   };
   const words={groceries:'grocery',daycares:'daycare',schools:'school',universities:'university',colleges:'college',parks:'park',pharmacies:'pharmacy',hospitals:'hospital',libraries:'library',museums:'museum',galleries:'gallery',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stations:'station',trains:'train',gyms:'gym',hotels:'hotel',stores:'store',centers:'centre',centres:'centre',center:'centre',neighborhoods:'neighbourhood',neighbourhoods:'neighbourhood',neighborhood:'neighbourhood',sports:'sport'};

@@ -7,9 +7,10 @@
   let records=[];
   const cache=new Map(),bounds=[-123.45,49,-122.35,49.6];
   const defaultOrigin={lon:-122.8484,lat:49.1887};
-  const words={ave:'avenue',av:'avenue',st:'street',rd:'road',blvd:'boulevard',dr:'drive',hwy:'highway',stn:'station',ctr:'centre',center:'centre',groceries:'grocery',universities:'university',parks:'park',hospitals:'hospital',pharmacies:'pharmacy',hotels:'hotel',gyms:'gym',rentals:'rental',stores:'store',centers:'centre',centres:'centre',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stadiums:'stadium',museums:'museum',galleries:'gallery',neighbourhoods:'neighbourhood',neighborhoods:'neighbourhood',schools:'school',daycares:'childcare',daycare:'childcare',preschools:'preschool'};
+  const words={ave:'avenue',av:'avenue',st:'street',rd:'road',blvd:'boulevard',dr:'drive',hwy:'highway',stn:'station',ctr:'centre',center:'centre',groceries:'grocery',universities:'university',parks:'park',hospitals:'hospital',pharmacies:'pharmacy',hotels:'hotel',gyms:'gym',rentals:'rental',stores:'store',centers:'centre',centres:'centre',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stadiums:'stadium',museums:'museum',galleries:'gallery',neighbourhoods:'neighbourhood',neighborhoods:'neighbourhood',schools:'school',daycares:'childcare',daycare:'childcare',preschools:'preschool',restaurants:'restaurant',cafes:'cafe',shops:'shop',offices:'office'};
   function normalize(value){
     return String(value??'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
+      .replace(/['’]/g,'')
       .replace(/\bsfu\b/g,'simon fraser university').replace(/\bkpu\b/g,'kwantlen polytechnic university').replace(/\bubc\b/g,'university of british columbia').replace(/\bbcit\b/g,'british columbia institute of technology')
       .replace(/\bday\s+care\b/g,'childcare').replace(/\bchild\s+care\b/g,'childcare').replace(/\bhigh\s+schools?\b/g,'secondary school')
       .replace(/\b(\d+)(?:st|nd|rd|th)\b/g,'$1').replace(/[^a-z0-9]+/g,' ').trim()
@@ -69,6 +70,7 @@
       const address=String(p.ADDRESS||p.LOCATION||p.address||'');
       if(!point||(!name&&!address))return [];
       const aliases=Array.isArray(p.SEARCH_ALIASES)?[...p.SEARCH_ALIASES]:String(p.SEARCH_ALIASES||'').split(/[;,|]/);
+      if(p.BRAND)aliases.push(p.BRAND,String(p.BRAND).replace(/[^a-zA-Z0-9\s]/g,''));
       aliases.push(...({'Ice arena':['ice rink','hockey rink','skating rink'],'Swimming pool':['pool','swimming'],'Athletics track':['running track']}[p.CATEGORY]||[]));
       const sourceUrl=/^https:\/\//i.test(p.SOURCE_URL||'')?p.SOURCE_URL:undefined;
       const transit=p.BUS_STOP_NO!=null||p.STOP_STATUS!=null;
@@ -88,9 +90,11 @@
   function distance(record,origin){return Math.hypot((record.lon-origin.lon)*73,(record.lat-origin.lat)*111);}
   function score(record,query,options){
     if(record._transit&&!/\b(bus|stop|transit)\b/.test(query))return -1;
+    // Initial-based chain names cannot borrow letters from an address or category.
+    if(/^(?:h m|a w)$/.test(query)&&![record._name,...record._aliases].some(name=>(' '+name+' ').includes(' '+query+' ')))return -1;
     // An institution's name must match a name/alias, never incidental city/category words.
     if(institutions.some(name=>(' '+query+' ').includes(' '+name+' ')&&!hasInstitution(record,name)))return -1;
-    const categoryWords={park:['park','parks'],grocery:['grocery','supermarket','greengrocer'],university:['university'],hospital:['hospital'],hotel:['hotel'],pharmacy:['pharmacy','chemist'],gym:['gym','fitness','fitness_centre'],hardware:['hardware'],furniture:['furniture'],recycling:['recycling','waste_disposal'],"car rental":['car_rental'],school:['elementary school','secondary school','middle school','combined school','other school'],'elementary school':['elementary school','combined school'],'secondary school':['secondary school','combined school'],childcare:['childcare']}[query];
+    const categoryWords={park:['park','parks'],grocery:['grocery','supermarket','greengrocer'],university:['university'],hospital:['hospital'],hotel:['hotel'],pharmacy:['pharmacy','chemist'],gym:['gym','fitness','fitness_centre'],hardware:['hardware'],furniture:['furniture'],recycling:['recycling','waste_disposal'],"car rental":['car_rental'],school:['elementary school','secondary school','middle school','combined school','other school'],'elementary school':['elementary school','combined school'],'secondary school':['secondary school','combined school'],childcare:['childcare'],coffee:['coffee shop','cafe'],cafe:['coffee shop','cafe'],restaurant:['restaurant','fast food','fast_food'],postal:['post office','post_office'],'post office':['post office','post_office'],clothing:['clothing store','clothes'],discount:['discount store','variety_store'],stationery:['office supplies']}[query];
     if(categoryWords){
       // Complete category words mean the kind of destination, not an arbitrary name prefix.
       const category=' '+record._category+' ';
