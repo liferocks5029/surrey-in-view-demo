@@ -29,7 +29,7 @@ let browse='developments',transportMatches=[],featuredOnly=true,pilotFilter='sur
 const initiallyVisible=new Set(['existing-buildings','proposed-buildings','skytrain-routes','skytrain-stations']);
 function el(tag,text,className){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;if(className)node.className=className;return node;}
 function safeLink(url){try{const u=new URL(url);return u.protocol==='https:'&&!u.username&&!u.password?u.href:null;}catch{return null;}}
-function link(label,url){const a=el('a',label);const href=safeLink(url);if(!href)return null;a.href=href;a.target='_blank';a.rel='noopener';return a;}
+function link(label,url){const a=el('a',label);const href=safeLink(url);if(!href)return null;a.href=href;a.target='_blank';a.rel='noopener';a.setAttribute('aria-label',label.replace(/\s*↗$/, '')+', opens in a new tab');return a;}
 function centre(feature){let b=feature.bbox;if(!b){const points=[];function walk(c){if(typeof c[0]==='number')points.push(c);else c.forEach(walk);}walk(feature.geometry.coordinates);b=[Math.min(...points.map(p=>p[0])),Math.min(...points.map(p=>p[1])),Math.max(...points.map(p=>p[0])),Math.max(...points.map(p=>p[1]))];}return {lon:(b[0]+b[2])/2,lat:(b[1]+b[3])/2};}
 function nearest(p,key){let result=null;for(const feature of data[key]?.features||[]){const q={lon:feature.geometry.coordinates[0],lat:feature.geometry.coordinates[1]};const metres=distance(p,q);if(!result||metres<result.metres)result={feature,...q,metres};}return result;}
 function mode(top){$('view-top').classList.toggle('active',top);$('view-top').setAttribute('aria-pressed',String(top));$('view-3d').classList.toggle('active',!top);$('view-3d').setAttribute('aria-pressed',String(!top));}
@@ -37,7 +37,7 @@ async function move(target){try{await view.goTo(target,{animate:!reduced,duratio
 function setStatus(text){$('status').textContent=text;}
 function drawList(){
  if(browse!=='developments'){drawTransportList();return;}
- $('projects').replaceChildren();$('count').textContent=matches.length.toLocaleString();
+ $('projects').replaceChildren();$('count').textContent=matches.length.toLocaleString();$('list-announcement').textContent=matches.length.toLocaleString()+' matching projects';
  for(const p of matches.slice(0,limit)){
   const models=projectModels(p.number),info=profile(p),area=projectArea(p);
   const b=el('button',undefined,'project-card');b.dataset.application=p.id;
@@ -51,7 +51,7 @@ function drawList(){
 }
 let filterTimer;
 function filter(){const q=$('search').value.trim().toLowerCase(),status=$('status-filter').value;limit=60;if(browse!=='developments'){transportMatches=(data[browse]?.features||[]).filter(f=>!q||Object.values(f.properties).join(' ').toLowerCase().includes(q));drawList();return;}matches=applications.filter(p=>(!featuredOnly||q||isFeatured(p))&&(!featuredOnly||q||inPilot(p))&&(!status||p.status===status)&&(!q||(p.number+' '+p.name+' '+p.description+' '+p.status+' '+JSON.stringify(profile(p))).toLowerCase().includes(q)));if(featuredOnly)matches.sort((a,b)=>(profile(b).residential_units||0)-(profile(a).residential_units||0));drawList();if(layers.developments){layers.developments.definitionExpression=matches.length===applications.length?'1=1':matches.length?'OBJECTID IN ('+matches.map(p=>p.id).join(',')+')':'1=0';}if(projectMarkers){const ids=new Set(matches.map(p=>p.id));projectMarkers.graphics.forEach(g=>g.visible=ids.has(g.attributes.OBJECTID));}if(selected&&!matches.includes(selected)){$('browse-panel').hidden=false;$('detail').hidden=true;$('project-map-card').hidden=true;selectionLayer?.removeAll();selected=null;invalidateRoutes();cancelPicking();stopAddressSearch();updateDestinationLayer();}}
-function drawTransportList(){const config=configs.find(c=>c.id===browse);$('projects').replaceChildren();$('count').textContent=transportMatches.length.toLocaleString()+' records';for(const feature of transportMatches.slice(0,limit)){const p=feature.properties,b=el('button',undefined,'project-card'),body=el('span');let title=p.NAME||p.PARK_NAME||p.DESCRIPTION||p.PL_NAME||p.LOCATION||p.ADDRESS||p.BIKE_INFRASTRUCTURE_TYPE||config.title;if(p.ROUTE_NO)title='Bus '+p.ROUTE_NO+' · '+p.ROUTE_NAME;body.append(el('strong',title));body.append(el('small',config.fields.map(([key])=>p[key]).filter(v=>v!==null&&v!==undefined&&v!=='').join(' · '),'excerpt'));b.append(body);b.addEventListener('click',()=>{showFeature(config,p);const target=feature.geometry.type==='Point'?{lon:feature.geometry.coordinates[0],lat:feature.geometry.coordinates[1]}:centre(feature);if(ready)move({target:[target.lon,target.lat],scale:config.kind==='point'?5000:22000,tilt:20,heading:0});});$('projects').append(b);}if(!transportMatches.length)$('projects').append(el('p','No matching records.','no-results'));$('load-more').hidden=limit>=transportMatches.length;}
+function drawTransportList(){const config=configs.find(c=>c.id===browse);$('projects').replaceChildren();$('count').textContent=transportMatches.length.toLocaleString()+' records';$('list-announcement').textContent=transportMatches.length.toLocaleString()+' matching places or routes';for(const feature of transportMatches.slice(0,limit)){const p=feature.properties,b=el('button',undefined,'project-card'),body=el('span');let title=p.NAME||p.PARK_NAME||p.DESCRIPTION||p.PL_NAME||p.LOCATION||p.ADDRESS||p.BIKE_INFRASTRUCTURE_TYPE||config.title;if(p.ROUTE_NO)title='Bus '+p.ROUTE_NO+' · '+p.ROUTE_NAME;body.append(el('strong',title));body.append(el('small',config.fields.map(([key])=>p[key]).filter(v=>v!==null&&v!==undefined&&v!=='').join(' · '),'excerpt'));b.append(body);b.addEventListener('click',()=>{showFeature(config,p);const target=feature.geometry.type==='Point'?{lon:feature.geometry.coordinates[0],lat:feature.geometry.coordinates[1]}:centre(feature);if(ready)move({target:[target.lon,target.lat],scale:config.kind==='point'?5000:22000,tilt:20,heading:0});});$('projects').append(b);}if(!transportMatches.length)$('projects').append(el('p','No matching records.','no-results'));$('load-more').hidden=limit>=transportMatches.length;}
 function updateScope(){
  if(!featuredOnly){pilotFilter='surrey';$('area').value='surrey';}
  $('area').disabled=!featuredOnly||browse!=='developments';areaContext();
@@ -63,7 +63,7 @@ function updateScope(){
 for(const [id,value] of [['scope-examples',true],['scope-all',false]])$(id).addEventListener('click',()=>{featuredOnly=value;$('browse-data').value='developments';$('browse-data').dispatchEvent(new Event('change'));});
 $('browse-data').addEventListener('change',()=>{
  browse=$('browse-data').value;$('search').value='';$('status-filter').disabled=browse!=='developments';closeProject();$('feature-info').hidden=true;
- $('search').placeholder=browse==='developments'?'Find a development by name or address':'Search places or routes';updateScope();filter();
+ $('search').placeholder=browse==='developments'?'Find a development by name or address':'Search places or routes';document.querySelector('label[for="search"]').textContent=browse==='developments'?'Find a development':'Find a place or route';updateScope();filter();
 });
 function profile(p){return data['project-profiles']?.profiles?.[p.number]||{};}
 function isFeatured(p){return profile(p).featured===true||projectModels(p.number).length>0||p.raw.STAFF_ADDED;}
@@ -133,7 +133,7 @@ function renderModelProjects(){
  $('model-count').textContent=numbers.length+' projects with 3D models';
  $('show-models').disabled=!numbers.length;$('show-models').onclick=()=>{if(numbers.length)selectModelProject(numbers[0]);};
 }
-function select(p,fly){if(ready)setScenario(true);if(layers['truck-routes']){const industrial=profile(p).use==='Industrial';layers['truck-routes'].visible=industrial;$('layer-truck-routes').checked=industrial;}SurreyEvents.record('project_open',p.number);renderModelDetails(p);renderNearby(p);stopAddressSearch();cancelPicking();selected=p;connectionVisible=false;if(['nearest','nearest-bus'].includes($('travel-destination').value)||($('travel-destination').value==='custom'&&!resolvedDestination))$('travel-destination').value=profile(p).use==='Industrial'?'nearest-bus':'nearest';$('browse-panel').hidden=true;$('project-map-card').hidden=false;updateDestinationLayer();document.querySelector('.sidebar').scrollTop=0;$('feature-info').hidden=true;$('map-project-title').textContent=projectTitle(p);$('model-summary').textContent=projectModelSummary(p);$('model-summary').hidden=!$('model-summary').textContent;$('map-project-status').textContent=p.status;$('map-project-description').textContent=p.description;$('map-project-links').replaceChildren();const official=link(p.raw.STAFF_EDITED?'Staff-supplied project link ↗':'Official project information ↗',p.raw.WEBLINK);if(official)$('map-project-links').append(official);$('detail').hidden=false;$('detail').open=false;$('detail-name').textContent=p.name?p.name+' · '+p.number:'Application '+p.number;$('detail-type').textContent=p.status;$('detail-description').textContent=p.description||'No description published.';$('source-links').replaceChildren();for(const [label,url] of [[p.raw.STAFF_EDITED?'Staff-supplied project link ↗':'Official inquiry ↗',p.raw.WEBLINK],['Application documents ↗',p.raw.APPLICATION_DOCUMENTS_WEBLINK]]){const a=link(label,url);if(a)$('source-links').append(a);}renderProjectOverview(p);const rail=nearest(p,'skytrain-stations'),bus=nearest(p,'bus-stops');$('rail-distance').textContent=rail?formatDistance(rail.metres):'Unavailable';$('bus-distance').textContent=bus?formatDistance(bus.metres):'Unavailable';$('nearest-details').textContent=[rail?.feature.properties.PL_NAME,bus?.feature.properties.LOCATION].filter(Boolean).join(' · ');$('station-distance').disabled=!rail;renderTravel();drawList();if(ready){selectionLayer.removeAll();if(p.feature.geometry.type==='Point'){selectionLayer.add(new Graphic({geometry:new Point({longitude:p.lon,latitude:p.lat}),symbol:{type:'simple-marker',color:'#0071e3',size:15,outline:{color:'white',width:2}}}));}else{const coords=p.feature.geometry.type==='Polygon'?p.feature.geometry.coordinates:p.feature.geometry.coordinates.flat();selectionLayer.add(new Graphic({geometry:new Polygon({rings:coords,spatialReference:{wkid:4326}}),symbol:{type:'simple-fill',color:[0,113,227,.12],outline:{color:'#0071e3',width:2}}}));}if(fly){frameProject();if(innerWidth<700)$('project-map-card').scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});}}setStatus('Selected '+p.number+' · '+p.status);$('map-project-title').focus({preventScroll:true});}
+function select(p,fly){if(ready)setScenario(true);if(layers['truck-routes']){const industrial=profile(p).use==='Industrial';layers['truck-routes'].visible=industrial;$('layer-truck-routes').checked=industrial;}SurreyEvents.record('project_open',p.number);renderModelDetails(p);renderNearby(p);stopAddressSearch();cancelPicking();clearMeasure();selected=p;connectionVisible=false;if(['nearest','nearest-bus'].includes($('travel-destination').value)||($('travel-destination').value==='custom'&&!resolvedDestination))$('travel-destination').value=profile(p).use==='Industrial'?'nearest-bus':'nearest';$('browse-panel').hidden=true;$('project-map-card').hidden=false;updateDestinationLayer();document.querySelector('.sidebar').scrollTop=0;$('feature-info').hidden=true;$('map-project-title').textContent=projectTitle(p);$('model-summary').textContent=projectModelSummary(p);$('model-summary').hidden=!$('model-summary').textContent;$('map-project-status').textContent=p.status;$('map-project-description').textContent=p.description;$('map-project-links').replaceChildren();const official=link(p.raw.STAFF_EDITED?'Staff-supplied project link ↗':'Official project information ↗',p.raw.WEBLINK);if(official)$('map-project-links').append(official);$('detail').hidden=false;$('detail').open=false;$('detail-name').textContent=p.name?p.name+' · '+p.number:'Application '+p.number;$('detail-type').textContent=p.status;$('detail-description').textContent=p.description||'No description published.';$('source-links').replaceChildren();for(const [label,url] of [[p.raw.STAFF_EDITED?'Staff-supplied project link ↗':'Official inquiry ↗',p.raw.WEBLINK],['Application documents ↗',p.raw.APPLICATION_DOCUMENTS_WEBLINK]]){const a=link(label,url);if(a)$('source-links').append(a);}renderProjectOverview(p);const rail=nearest(p,'skytrain-stations'),bus=nearest(p,'bus-stops');$('rail-distance').textContent=rail?formatDistance(rail.metres):'Unavailable';$('bus-distance').textContent=bus?formatDistance(bus.metres):'Unavailable';$('nearest-details').textContent=[rail?.feature.properties.PL_NAME,bus?.feature.properties.LOCATION].filter(Boolean).join(' · ');$('station-distance').disabled=!rail;renderTravel();drawList();if(ready){selectionLayer.removeAll();if(p.feature.geometry.type==='Point'){selectionLayer.add(new Graphic({geometry:new Point({longitude:p.lon,latitude:p.lat}),symbol:{type:'simple-marker',color:'#0071e3',size:15,outline:{color:'white',width:2}}}));}else{const coords=p.feature.geometry.type==='Polygon'?p.feature.geometry.coordinates:p.feature.geometry.coordinates.flat();selectionLayer.add(new Graphic({geometry:new Polygon({rings:coords,spatialReference:{wkid:4326}}),symbol:{type:'simple-fill',color:[0,113,227,.12],outline:{color:'#0071e3',width:2}}}));}if(fly){frameProject();if(innerWidth<700)$('project-map-card').scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});}}setStatus('Selected '+p.number+' · '+p.status);$('map-project-title').focus({preventScroll:true});}
 let placeCoverage={};
 const recreationCategories=['Stadium','Swimming pool','Ice arena','Tennis court','Pickleball court','Basketball court','Soccer field','Baseball field','Cricket field','Volleyball court','Athletics track','Skate park','Bike park','Lacrosse court','Ball hockey court'];
 const hiddenNearbyCategories=new Set(['Sports field','Outdoor recreation']);
@@ -144,9 +144,9 @@ function selectedNearbyCategory(){return $('nearby-category').value;}
 function renderAmenityDirectory(){
  const host=$('nearby-category-grid');host.replaceChildren();
  const groups=SurreyCategoryMenu.filterGroups(amenityGroups,$('nearby-category-search').value);
- $('nearby-category-empty').hidden=groups.length>0;
+ $('nearby-category-empty').hidden=groups.length>0;$('category-announcement').textContent=groups.reduce((count,group)=>count+group.options.length,0)+' matching categories';
  groups.forEach((group,i)=>{
-  const section=el('section',undefined,'amenity-group'),heading=el('h4',group.label);
+  const section=el('section',undefined,'amenity-group'),heading=el('h3',group.label);
   heading.id='amenity-group-'+i;section.setAttribute('aria-labelledby',heading.id);
   const grid=el('div',undefined,'amenity-grid');
   for(const option of group.options){
@@ -188,12 +188,12 @@ function renderNearbyCategory(p,key='nearby'){
  $(key+'-category-fit').disabled=!state.places.length;
  appendNearbyPlaces(key);updateDestinationLayer();
 }
-function appendNearbyPlaces(key='nearby'){
+function appendNearbyPlaces(key='nearby',focusNew=false){
  const state=nearbyExplorers[key];
- const category=selectedNearbyCategory(),host=$(key+'-category-results'),end=Math.min(state.shown+12,state.places.length);
+ const category=selectedNearbyCategory(),host=$(key+'-category-results'),previous=host.children.length,end=Math.min(state.shown+12,state.places.length);
  for(const place of state.places.slice(state.shown,end)){
   const row=el('article',undefined,'category-place'),button=el('button',undefined,'nearby-place'),props=place.feature.properties;
-  button.type='button';const heading=el('span',undefined,'place-heading');heading.append(el('strong',place.name),el('span',formatDistance(place.metres),'place-distance'));
+  button.type='button';button.setAttribute('aria-label',place.name+', '+formatDistance(place.metres)+' straight-line distance. Choose as destination.');const heading=el('span',undefined,'place-heading');heading.append(el('strong',place.name),el('span',formatDistance(place.metres),'place-distance'));
   const address=props.ADDRESS||props.CITY||props.SITE_NAME||(place.lat.toFixed(4)+', '+place.lon.toFixed(4));button.append(heading,el('small',address));
   button.addEventListener('click',()=>{$('travel-destination').value='custom';chooseAddress({...place,label:place.name,source:props.SOURCE_NAME||'Regional place inventory',locationType:'approximate reference point'});$('directions-panel').open=true;$('directions-panel').scrollIntoView({block:'nearest',behavior:reduced?'instant':'smooth'});$('travel-custom').focus({preventScroll:true});});row.append(button);
   if(props.SERVICE_NOTE){const note=el('p',props.SERVICE_NOTE,'category-service-note');if(props.SERVICE_NOTE.length>180){const details=el('details',undefined,'place-access');details.append(el('summary',category==='Recycling & disposal'?'Materials and access':'Service details'),note);row.append(details);}else row.append(note);}
@@ -204,6 +204,7 @@ function appendNearbyPlaces(key='nearby'){
  $(key+'-category-more').hidden=end>=count;
  $(key+'-category-more').textContent='Show more';
  if(!count)host.append(el('p','No locations in the current map data.','secondary'));
+ if(focusNew)host.children[previous]?.querySelector('button')?.focus();
 }
 function updateDestinationLayer(){
  const layer=layers.destinations;if(!layer)return;
@@ -215,7 +216,7 @@ function updateDestinationLayer(){
  $('feature-info').hidden=true;
 }
 for(const key of Object.keys(nearbyExplorers)){
- $(key+'-category-more').addEventListener('click',()=>appendNearbyPlaces(key));
+ $(key+'-category-more').addEventListener('click',()=>appendNearbyPlaces(key,true));
  $(key+'-category-fit').addEventListener('click',()=>{const state=nearbyExplorers[key];if(!ready||!state.origin||!state.places.length)return;connectionVisible=false;drawConnection();const points=[state.origin,...state.places.slice(0,12)];mode(true);move({target:points.map(p=>new Point({longitude:p.lon,latitude:p.lat})),tilt:0,heading:0});});
  $(key+'-category-results').addEventListener('scroll',()=>{const list=$(key+'-category-results'),state=nearbyExplorers[key];if(state.shown<state.places.length&&list.scrollHeight-list.scrollTop-list.clientHeight<70)appendNearbyPlaces(key);});
  $(key+'-category').addEventListener('change',()=>renderNearbyCategory(selected,key));
@@ -240,7 +241,7 @@ function closeSuggestions(){
  $('address-suggestions').hidden=true;$('more-addresses').hidden=true;$('travel-custom').setAttribute('aria-expanded','false');
  $('travel-custom').removeAttribute('aria-activedescendant');addressActive=-1;
 }
-function stopAddressSearch(){clearTimeout(addressTimer);addressVersion++;addressLoading=false;addressAbort?.abort();closeSuggestions();}
+function stopAddressSearch(){clearTimeout(addressTimer);addressVersion++;addressLoading=false;addressAbort?.abort();$('address-suggestions').setAttribute('aria-busy','false');closeSuggestions();}
 function invalidateRoutes(){routeDestinationMarker?.removeAll();$('connection-summary').hidden=true;}
 function drawConnection(){
  invalidateRoutes();
@@ -290,22 +291,33 @@ function modeIcon(mode){
 }
 function chooseAddress(result){
  stopAddressSearch();resolvedDestination=result;$('travel-custom').value=result.label;
- $('address-status').textContent='';
- renderTravel();fitConnection();
+ $('address-status').textContent='';$('address-announcement').textContent='Destination selected: '+result.label;
+ renderTravel();fitConnection();$('travel-custom').focus({preventScroll:true});
+}
+function setActiveAddress(index,scroll=true){
+ addressActive=index;
+ const options=Array.from($('address-suggestions').children);
+ for(const [i,item] of options.entries())item.setAttribute('aria-selected',String(i===addressActive));
+ const item=options[addressActive];
+ if(!item){$('travel-custom').removeAttribute('aria-activedescendant');return;}
+ $('travel-custom').setAttribute('aria-activedescendant',item.id);
+ if(scroll)item.scrollIntoView({block:'nearest'});
 }
 function showSuggestions(results,preserveScroll=false){
- const list=$('address-suggestions'),scroll=preserveScroll?list.scrollTop:0;
+ const list=$('address-suggestions'),scroll=preserveScroll?list.scrollTop:0,previous=preserveScroll?addressResults[addressActive]:null;
  addressResults=results;addressActive=-1;list.replaceChildren();$('travel-custom').removeAttribute('aria-activedescendant');
  results.forEach((result,i)=>{const item=el('li');item.id='address-option-'+i;item.setAttribute('role','option');item.setAttribute('aria-selected','false');item.append(el('strong',result.title||result.label),el('small',result.subtitle||result.address||result.locationType));item.addEventListener('mousedown',e=>e.preventDefault());item.addEventListener('click',()=>chooseAddress(result));list.append(item);});
  list.hidden=!results.length;list.scrollTop=scroll;$('travel-custom').setAttribute('aria-expanded',String(!!results.length));
  $('more-addresses').hidden=!addressHasMore||!results.length;
+ if(previous)setActiveAddress(results.findIndex(result=>result.label===previous.label&&result.lon===previous.lon&&result.lat===previous.lat),false);
+ $('address-announcement').textContent=results.length?results.length+' suggestions available. Use the arrow keys to choose.':'';
 }
 async function searchAddress(more=false){
  const query=$('travel-custom').value.trim();if(query.length<3||addressLoading)return;
  if(more){if(!addressHasMore)return;addressLimit=Math.min(50,addressLimit+20);}
  const version=addressVersion;addressLoading=true;addressAbort=new AbortController();const controller=addressAbort;
  const timeout=setTimeout(()=>{if(version===addressVersion){controller.abort();$('address-status').textContent='Online search is taking too long. Choose a local match or try again.';}},10000);
- $('address-status').textContent=more?'Finding more matches…':'Finding addresses and places…';$('more-addresses').disabled=true;
+ $('address-status').textContent=more?'Finding more matches…':'Finding addresses and places…';$('more-addresses').disabled=true;$('address-suggestions').setAttribute('aria-busy','true');
  try{
   const origin=selected?{lon:selected.lon,lat:selected.lat}:undefined,options={signal:controller.signal,origin,limit:addressLimit};
   if(!more){const local=await SurreyAddressSearch.search(query,{...options,localOnly:true});if(version!==addressVersion)return;if(local.length){showSuggestions(local);$('address-status').textContent='Searching…';}}
@@ -313,7 +325,7 @@ async function searchAddress(more=false){
   addressHasMore=(results.hasMore??results.length>=addressLimit)&&addressLimit<50;showSuggestions(results,more);
   $('address-status').textContent=results.length?'':'No match. Try a street number or city.';
  }catch(e){if(e.name!=='AbortError'&&version===addressVersion){addressHasMore=false;$('more-addresses').hidden=true;$('address-status').textContent=addressResults.length?'Showing local matches. Online address search is unavailable.':'Address search is unavailable. Choose a map point or use Google Maps below.';}}
- finally{clearTimeout(timeout);if(version===addressVersion){addressLoading=false;$('more-addresses').disabled=false;}}
+ finally{clearTimeout(timeout);if(version===addressVersion){addressLoading=false;$('more-addresses').disabled=false;$('address-suggestions').setAttribute('aria-busy','false');}}
 }
 $('address-suggestions').addEventListener('scroll',()=>{const list=$('address-suggestions');if(!list.hidden&&list.scrollTop>0&&list.scrollTop+list.clientHeight>=list.scrollHeight-45)searchAddress(true);});
 $('more-addresses').addEventListener('click',()=>searchAddress(true));
@@ -323,22 +335,54 @@ $('travel-custom').addEventListener('input',()=>{
  $('address-status').textContent='Searching…';addressTimer=setTimeout(searchAddress,700);
 });
 $('travel-custom').addEventListener('keydown',e=>{
- if(e.key==='Escape'){stopAddressSearch();return;}
+ if(e.key==='Tab'){stopAddressSearch();return;}
+ if(e.key==='Escape'){if(!$('address-suggestions').hidden)e.stopPropagation();stopAddressSearch();return;}
  if(e.key==='Enter'){e.preventDefault();if(!$('address-suggestions').hidden&&addressResults.length)chooseAddress(addressResults[Math.max(0,addressActive)]);else{stopAddressSearch();searchAddress();}return;}
- if(['ArrowDown','ArrowUp'].includes(e.key)&&!$('address-suggestions').hidden&&addressResults.length){e.preventDefault();addressActive=addressActive<0?(e.key==='ArrowDown'?0:addressResults.length-1):(addressActive+(e.key==='ArrowDown'?1:-1)+addressResults.length)%addressResults.length;for(const [i,item] of Array.from($('address-suggestions').children).entries())item.setAttribute('aria-selected',String(i===addressActive));const id='address-option-'+addressActive;$('travel-custom').setAttribute('aria-activedescendant',id);$(id).scrollIntoView({block:'nearest'});}
+ if(['ArrowDown','ArrowUp'].includes(e.key)&&!$('address-suggestions').hidden&&addressResults.length){e.preventDefault();setActiveAddress(addressActive<0?(e.key==='ArrowDown'?0:addressResults.length-1):(addressActive+(e.key==='ArrowDown'?1:-1)+addressResults.length)%addressResults.length);}
 });
-document.addEventListener('click',e=>{if(!e.target.closest('.address-search'))closeSuggestions();});
+document.querySelector('.address-search').addEventListener('focusout',e=>{if(!e.currentTarget.contains(e.relatedTarget))stopAddressSearch();});
+document.addEventListener('click',e=>{if(!e.target.closest('.address-search'))stopAddressSearch();});
 $('travel-destination').addEventListener('change',()=>{stopAddressSearch();renderTravel();if($('travel-destination').value==='custom')$('travel-custom').focus();else fitConnection();});
 $('travel-direction').addEventListener('change',renderTravel);
 $('fit-connection').addEventListener('click',fitConnection);
-function cancelPicking(){pickingDestination=false;$('destination-prompt').hidden=true;$('pick-destination').setAttribute('aria-pressed','false');if(view)view.container.style.cursor='';}
-function closeProject(){$('fit-project').hidden=true;$('project-map-card').hidden=true;$('browse-panel').hidden=false;cancelPicking();stopAddressSearch();selected=null;selectionLayer?.removeAll();invalidateRoutes();updateDestinationLayer();}
+function cancelPicking(){pickingDestination=false;updatePickTarget();$('destination-prompt').hidden=true;$('pick-destination').setAttribute('aria-pressed','false');if(view)view.container.style.cursor='';}
+function closeProject(){$('fit-project').hidden=true;$('project-map-card').hidden=true;$('browse-panel').hidden=false;cancelPicking();clearMeasure();stopAddressSearch();selected=null;selectionLayer?.removeAll();invalidateRoutes();updateDestinationLayer();}
 $('close-project-card').addEventListener('click',()=>{const id=selected?.id;closeProject();const button=[...$('projects').querySelectorAll('button')].find(b=>b.dataset.application===String(id));(button||$('search')).focus({preventScroll:true});});
-$('pick-destination').addEventListener('click',()=>{if(!ready)return;stopAddressSearch();clearMeasure();pickingDestination=!pickingDestination;if(pickingDestination&&innerWidth<700)document.querySelector('.map-section').scrollIntoView({block:'start'});$('destination-prompt').hidden=!pickingDestination;$('pick-destination').setAttribute('aria-pressed',String(pickingDestination));view.container.style.cursor=pickingDestination?'crosshair':'';});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pickingDestination){cancelPicking();$('project-map-card').hidden=false;}});
-function clearMeasure(){measuring=false;measurePoints=[];measureLayer?.removeAll();$('measure').setAttribute('aria-pressed','false');$('measure-panel').hidden=true;if(view)view.container.style.cursor='';}
+$('pick-destination').addEventListener('click',()=>{if(!ready)return;stopAddressSearch();clearMeasure();pickingDestination=!pickingDestination;updatePickTarget();if(pickingDestination&&innerWidth<700)document.querySelector('.map-section').scrollIntoView({block:'start'});$('destination-prompt').hidden=!pickingDestination;$('pick-destination').setAttribute('aria-pressed',String(pickingDestination));view.container.style.cursor=pickingDestination?'crosshair':'';if(pickingDestination){view.focus();setStatus('Choose a map point, or use arrow keys and press Enter at the crosshair. Escape cancels.');}});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape')return;if(pickingDestination){cancelPicking();$('project-map-card').hidden=false;$('pick-destination').focus();}else if(measuring||!$('measure-panel').hidden){clearMeasure();$('measure').focus();}});
+function updatePickTarget(){$('map-pick-target').hidden=!measuring&&!pickingDestination;}
+function clearMeasure(){measuring=false;updatePickTarget();measurePoints=[];measureLayer?.removeAll();$('measure').setAttribute('aria-pressed','false');$('measure-panel').hidden=true;if(view)view.container.style.cursor='';}
+function acceptMapPoint(point,keyboard=false){
+ if(!point||!Number.isFinite(point.longitude)||!Number.isFinite(point.latitude))return false;
+ const location={lon:point.longitude,lat:point.latitude};
+ if(pickingDestination){
+  pickedDestination=location;cancelPicking();$('project-map-card').hidden=false;$('travel-destination').value='map-point';renderTravel();fitConnection();
+  setStatus('Map destination selected. Walking, transit and driving directions are ready.');
+  if(keyboard)$('travel-custom').focus();
+  return true;
+ }
+ if(!measuring)return false;
+ measurePoints.push(location);
+ if(measurePoints.length===1){
+  $('measure-result').textContent='First point set. Choose the second point, or move with the arrow keys and press Enter.';
+  measureLayer.add(new Graphic({geometry:point,symbol:{type:'simple-marker',color:'#1942be',size:9}}));
+ }else{
+  drawMeasurement(...measurePoints);measuring=false;updatePickTarget();$('measure').setAttribute('aria-pressed','false');view.container.style.cursor='';
+  if(keyboard)$('measure-result').focus();
+ }
+ return true;
+}
+$('viewDiv').addEventListener('keydown',event=>{
+ if(event.key!=='Enter'||(!measuring&&!pickingDestination)||event.target.closest('button,input,select,a,summary'))return;
+ event.preventDefault();event.stopPropagation();
+ const point=view?.toMap({x:view.width/2,y:view.height/2});
+ if(!acceptMapPoint(point,true))setStatus('The crosshair is outside the ground. Move the map down and try again.');
+},true);
 function drawMeasurement(a,b){measureLayer.removeAll();measureLayer.add(new Graphic({geometry:{type:'polyline',paths:[[[a.lon,a.lat],[b.lon,b.lat]]],spatialReference:{wkid:4326}},symbol:{type:'simple-line',color:'#1942be',width:3,style:'dash'}}));for(const p of [a,b])measureLayer.add(new Graphic({geometry:new Point({longitude:p.lon,latitude:p.lat}),symbol:{type:'simple-marker',size:9,color:'#1942be',outline:{color:'white',width:2}}}));$('measure-panel').hidden=false;$('measure-result').textContent=formatDistance(distance(a,b))+' · straight line, not a walking route';}
-function showFeature(config,attributes){$('feature-info').hidden=false;const title=config.id==='bus-routes'?'Bus '+attributes.ROUTE_NO:config.id==='skytrain-stations'?attributes.PL_NAME:config.id==='bus-stops'?'Bus stop '+attributes.BUS_STOP_NO:config.id==='destinations'?attributes.NAME:config.title;$('feature-title').textContent=title;$('feature-properties').replaceChildren();for(const [field,label] of config.fields){const value=attributes[field];if(value!==null&&value!==undefined&&value!=='')$('feature-properties').append(el('dt',label),el('dd',field==='BUILDING_HEIGHT'?Number(value).toLocaleString('en-CA',{maximumFractionDigits:1}):String(value)));}const source=attributes.SOURCE_URL||config.source||[...manifest.layers,...(amenitySource?.layers||[])].find(x=>x.id===config.id)?.source;const a=$('feature-source');a.hidden=!safeLink(source);if(safeLink(source))a.href=source;}
+let featureReturnFocus=null;
+function showFeature(config,attributes){if($('feature-info').hidden)featureReturnFocus=document.activeElement;$('feature-info').hidden=false;const title=config.id==='bus-routes'?'Bus '+attributes.ROUTE_NO:config.id==='skytrain-stations'?attributes.PL_NAME:config.id==='bus-stops'?'Bus stop '+attributes.BUS_STOP_NO:config.id==='destinations'?attributes.NAME:config.title;$('feature-title').textContent=title;$('feature-properties').replaceChildren();for(const [field,label] of config.fields){const value=attributes[field];if(value!==null&&value!==undefined&&value!=='')$('feature-properties').append(el('dt',label),el('dd',field==='BUILDING_HEIGHT'?Number(value).toLocaleString('en-CA',{maximumFractionDigits:1}):String(value)));}const source=attributes.SOURCE_URL||config.source||[...manifest.layers,...(amenitySource?.layers||[])].find(x=>x.id===config.id)?.source;const a=$('feature-source');a.hidden=!safeLink(source);if(safeLink(source))a.href=source;$('feature-title').focus({preventScroll:true});if(innerWidth<700)$('feature-info').scrollIntoView({block:'nearest'});}
+function closeFeature(){$('feature-info').hidden=true;if(featureReturnFocus?.isConnected)featureReturnFocus.focus({preventScroll:true});else view?.focus();}
+$('feature-info').addEventListener('keydown',e=>{if(e.key==='Escape'){e.stopPropagation();closeFeature();}});
 // The comparison changes visibility only: camera position and height scale stay fixed.
 function setScenario(proposed){
  showProposals=proposed;
@@ -383,11 +427,11 @@ async function fetchJSON(url){let result=window.__SURREY_DATA?.[url];if(!result)
 function failure(message){$('loading').hidden=true;$('map-error').hidden=false;$('map-error-message').textContent=message;setStatus('Some data could not load. See map message.');}
 function mapDependencyError(error){const message=String(error?.message||error||'');if(message.includes('scriptError')&&message.includes('js.arcgis.com')){renderingDependencyFailed=true;failure('Some map graphics could not load. Reload the map, or use the text view.');}}
 addEventListener('error',event=>mapDependencyError(event.error||event.message));addEventListener('unhandledrejection',event=>mapDependencyError(event.reason));
-$('data-tools').addEventListener('click',()=>{const notes=$('source-details');notes.open=true;notes.scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});});
-$('search').addEventListener('input',()=>{if($('search').value.trim()){featuredOnly=false;updateScope();}clearTimeout(filterTimer);filterTimer=setTimeout(filter,140);});$('status-filter').addEventListener('change',filter);$('load-more').addEventListener('click',()=>{limit+=60;drawList();});
+$('data-tools').addEventListener('click',()=>{const notes=$('source-details');notes.open=true;notes.scrollIntoView({block:'start',behavior:reduced?'instant':'smooth'});notes.querySelector('summary').focus({preventScroll:true});});
+$('search').addEventListener('input',()=>{if($('search').value.trim()){featuredOnly=false;updateScope();}clearTimeout(filterTimer);filterTimer=setTimeout(filter,140);});$('status-filter').addEventListener('change',filter);$('load-more').addEventListener('click',()=>{const previous=$('projects').children.length;limit+=60;drawList();$('projects').children[previous]?.focus();});
 $('area').addEventListener('change',()=>{if(!ready)return;pilotFilter=$('area').value;closeProject();$('search').value='';$('status-filter').value='';featuredOnly=true;updateScope();filter();const area=areas[$('area').value];SurreyEvents.record('pilot_area',$('area').value);mode(false);move({target:[area.lon,area.lat],scale:area.scale,tilt:$('area').value==='surrey'?15:48,heading:$('area').value==='surrey'?0:325});});
 $('view-top').addEventListener('click',()=>{if(ready){mode(true);move({tilt:0,heading:0});}});$('view-3d').addEventListener('click',()=>{if(ready){mode(false);move({tilt:48,heading:325});}});
-$('measure').addEventListener('click',()=>{if(!ready)return;const next=!measuring;clearMeasure();measuring=next;$('measure').setAttribute('aria-pressed',String(next));$('measure-panel').hidden=!next;$('measure-result').textContent='Click two points on the map.';view.container.style.cursor=next?'crosshair':'';});$('clear-measure').addEventListener('click',clearMeasure);$('close-feature').addEventListener('click',()=>{$('feature-info').hidden=true;});
+$('measure').addEventListener('click',()=>{if(!ready)return;const next=!measuring;clearMeasure();measuring=next;updatePickTarget();$('measure').setAttribute('aria-pressed',String(next));$('measure-panel').hidden=!next;$('measure-result').textContent='Choose two map points, or use the arrow keys and Enter at the crosshair. Escape cancels.';if(next){cancelPicking();view.focus();}view.container.style.cursor=next?'crosshair':'';});$('clear-measure').addEventListener('click',clearMeasure);$('close-feature').addEventListener('click',closeFeature);
 $('station-distance').addEventListener('click',()=>{if(!ready||!selected)return;const rail=nearest(selected,'skytrain-stations');if(!rail)return;clearMeasure();drawMeasurement(selected,rail);move({target:[[selected.lon,selected.lat],[rail.lon,rail.lat]],tilt:25,heading:0});});
 if(innerWidth<700)$('layers-panel').open=false;
 const watchdog=setTimeout(()=>{if(!ready)failure('The map is taking longer than expected. Check internet access and WebGL support. Public data files remain available in Sources.');},60000);
@@ -439,7 +483,7 @@ else require(['esri/Map','esri/Basemap','esri/layers/WebTileLayer','esri/views/S
   ready=true;setScenario(showProposals);$('compare-existing').disabled=false;$('compare-proposed').disabled=false;renderModelProjects();updateScope();filter();if(selected)drawConnection();clearTimeout(watchdog);$('loading').hidden=true;if(!renderingDependencyFailed)$('map-error').hidden=true;$('loaded-count').textContent=(Object.keys(layers).length-loadFailures.length)+'/'+configs.length;
   setStatus(applications.length.toLocaleString()+' applications · Public-source demonstration');
   if(failed.length||loadFailures.length)failure('Unavailable layers: '+[...failed,...loadFailures].join(', ')+'. Other layers remain usable.');
-  view.on('click',async event=>{try{if(pickingDestination){if(event.mapPoint){pickedDestination={lon:event.mapPoint.longitude,lat:event.mapPoint.latitude};pickingDestination=false;$('destination-prompt').hidden=true;$('project-map-card').hidden=false;$('pick-destination').setAttribute('aria-pressed','false');view.container.style.cursor='';$('travel-destination').value='map-point';renderTravel();fitConnection();}return;}if(measuring){if(!event.mapPoint)return;measurePoints.push({lon:event.mapPoint.longitude,lat:event.mapPoint.latitude});if(measurePoints.length===1){$('measure-result').textContent='First point set. Click the second point.';measureLayer.add(new Graphic({geometry:event.mapPoint,symbol:{type:'simple-marker',color:'#1942be',size:9}}));}else{drawMeasurement(...measurePoints);measuring=false;$('measure').setAttribute('aria-pressed','false');view.container.style.cursor='';}return;}const result=await view.hitTest(event,{include:[...Object.values(layers),projectMarkers].filter(l=>l.visible)});const hits=result.results.filter(r=>r.graphic?.layer);const hit=hits.find(r=>r.graphic.layer===layers['proposed-buildings'])||hits.find(r=>r.graphic.layer===projectMarkers)||hits.find(r=>r.graphic.layer===layers.developments)||hits[0];if(!hit)return;const config=configs.find(c=>layers[c.id]===hit.graphic.layer);if(config?.id==='proposed-buildings'){const p=applications.find(p=>p.number===hit.graphic.attributes.project_no);if(p){select(p,false);setStatus('Proposed 3D sample · '+hit.graphic.attributes.name);}return;}if(config?.id==='developments'||hit.graphic.layer===projectMarkers){const p=applications.find(p=>p.number===hit.graphic.attributes.PROJECT_NO);if(p){select(p,false);$('feature-info').hidden=true;}}else if(config)showFeature(config,hit.graphic.attributes);}catch(e){console.error(e);}});
+  view.on('click',async event=>{try{if(pickingDestination||measuring){acceptMapPoint(event.mapPoint);return;}const result=await view.hitTest(event,{include:[...Object.values(layers),projectMarkers].filter(l=>l.visible)});const hits=result.results.filter(r=>r.graphic?.layer);const hit=hits.find(r=>r.graphic.layer===layers['proposed-buildings'])||hits.find(r=>r.graphic.layer===projectMarkers)||hits.find(r=>r.graphic.layer===layers.developments)||hits[0];if(!hit)return;const config=configs.find(c=>layers[c.id]===hit.graphic.layer);if(config?.id==='proposed-buildings'){const p=applications.find(p=>p.number===hit.graphic.attributes.project_no);if(p){select(p,false);setStatus('Proposed 3D sample · '+hit.graphic.attributes.name);}return;}if(config?.id==='developments'||hit.graphic.layer===projectMarkers){const p=applications.find(p=>p.number===hit.graphic.attributes.PROJECT_NO);if(p){select(p,false);$('feature-info').hidden=true;}}else if(config)showFeature(config,hit.graphic.attributes);}catch(e){console.error(e);}});
   const requestedProject=new URLSearchParams(location.search).get('project');if(requestedProject){const project=applications.find(p=>p.number===requestedProject);if(project){if(projectModels(project.number).length)selectModelProject(project.number);else select(project,true);}}
   window.surreyDemo={get ready(){return ready;},view,layers,data,applications,measureLayer,selectionLayer,projectMarkers,get selected(){return selected;},get journeyDestination(){return journeyDestination;},routeDestinationMarker,distance,nearest};
  }catch(e){window.__appErrors.push(String(e));console.error(e);clearTimeout(watchdog);failure('Unable to load the public-data map: '+e.message);}

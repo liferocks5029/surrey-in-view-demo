@@ -12,7 +12,7 @@
     try {
       const parsed = new URL(url);
       if (parsed.protocol !== 'https:' || parsed.username || parsed.password) return el('span', 'Source unavailable');
-      const anchor = el('a', text); anchor.href = parsed.href; anchor.target = '_blank'; anchor.rel = 'noopener noreferrer'; return anchor;
+      const anchor = el('a', text); anchor.href = parsed.href; anchor.target = '_blank'; anchor.rel = 'noopener noreferrer'; anchor.setAttribute('aria-label', text.replace(/\s*↗$/, '') + ', opens in a new tab'); return anchor;
     } catch (_) { return el('span', 'Source unavailable'); }
   };
   const models = feature => data['proposed-buildings'].features.filter(model => model.properties.project_no === feature.properties.PROJECT_NO);
@@ -90,8 +90,8 @@
       for(const category of categories){const option=el('option',placeCoverage[category]?.label||category);option.value=category;picker.append(option);}
       pickerLabel.append(picker);section.content.append(pickerLabel,nearby,more);
       let ranked=[],shown=0;
-      function append(){
-      const end=Math.min(shown+12,ranked.length);
+      function append(focusNew=false){
+      const previous=nearby.children.length,end=Math.min(shown+12,ranked.length);
       for (const place of ranked.slice(shown,end)) {
         const item = el('li'); item.append(el('strong', place.category + ': ' + place.name), el('p', SurreyNearby.format(place.metres) + ' straight line', 'muted'));
         if (place.feature.properties.SERVICE_NOTE) item.append(el('p',place.feature.properties.SERVICE_NOTE,'route-caveat'));
@@ -111,24 +111,27 @@
         item.append(directions); nearby.append(item);
       }
       shown=end;more.hidden=shown>=ranked.length;more.textContent='Show more';
+      if(focusNew){const first=nearby.children[previous]?.querySelector('strong');if(first){first.tabIndex=-1;first.focus();}}
       }
       function refresh(){ranked=SurreyNearby.venues(origin,data,picker.value);shown=0;nearby.replaceChildren();append();}
-      picker.addEventListener('change',refresh);more.addEventListener('click',append);refresh();
+      picker.addEventListener('change',refresh);more.addEventListener('click',()=>append(true));refresh();
     });
     return section.details;
   }
-  function render() {
+  function render(append=false) {
     const term = $('search').value.trim().toLowerCase();
     const matches = projects.filter(feature => {
       const record = feature.properties, {profile, title, summary} = presentation(feature);
       return ($('filter').value === 'all' || profile.featured === true || models(feature).length || record.STAFF_ADDED) && (!term || [record.PROJECT_NO, title, summary, record.DESCRIPTION, profile.address, profile.use, profile.area, ...models(feature).map(model => model.properties.area)].join(' ').toLowerCase().includes(term));
     });
     if ($('filter').value !== 'all') matches.sort((a,b) => (profiles[b.properties.PROJECT_NO]?.residential_units || 0) - (profiles[a.properties.PROJECT_NO]?.residential_units || 0));
-    $('result-count').textContent = matches.length.toLocaleString() + ' matching projects'; $('project-list').replaceChildren(); $('more').hidden = limit >= matches.length;
-    for (const feature of matches.slice(0, limit)) {
+    $('result-count').textContent = matches.length.toLocaleString() + ' matching projects';
+    const previous=append?$('project-list').children.length:0;
+    if(!append)$('project-list').replaceChildren(); $('more').hidden = limit >= matches.length;
+    for (const feature of matches.slice(previous, limit)) {
       const record = feature.properties, {profile, title, summary} = presentation(feature), items = models(feature);
       const card = el('article', undefined, 'project-card'), intro = el('div', undefined, 'card-intro'), heading = el('div', undefined, 'card-heading');
-      const titleNode = el('h2', title); titleNode.id = 'project-' + record.PROJECT_NO; card.setAttribute('aria-labelledby', titleNode.id);
+      const titleNode = el('h2', title); titleNode.id = 'project-' + record.PROJECT_NO; titleNode.tabIndex=-1; card.setAttribute('aria-labelledby', titleNode.id);
       heading.append(titleNode, mapLink(record.PROJECT_NO)); intro.append(heading);
       const recordLine = el('div', undefined, 'record-line');
       recordLine.append(el('span', record.PROJECT_NO), el('span', 'Status: ' + (record.STATUS || 'Not published'), 'status'));
@@ -146,6 +149,7 @@
     }
     if (!matches.length) $('project-list').append(el('p', 'No matches. Try a different search or show all application snapshots.', 'empty'));
     $('project-list').setAttribute('aria-busy', 'false');
+    if(append)$('project-list').children[previous]?.querySelector('h2')?.focus();
   }
   async function fetchData(path) {
     if (window.__SURREY_DATA?.[path]) return window.__SURREY_DATA[path];
@@ -169,8 +173,9 @@
     projects = data.developments.features;
     if (query.get('project')) { $('search').value = query.get('project'); $('filter').value = 'all'; }
     $('search').addEventListener('input', () => { limit = 20; render(); }); $('filter').addEventListener('change', () => { limit = 20; render(); });
-    $('more').addEventListener('click', () => { limit += 20; render(); }); render();
+    $('more').addEventListener('click', () => { limit += 20; render(true); }); render();
   } catch (error) {
     $('revision').textContent = 'Could not load the list: ' + error.message; $('revision').classList.add('error'); $('revision').setAttribute('role', 'alert'); $('project-list').setAttribute('aria-busy', 'false');
+    if(append)$('project-list').children[previous]?.querySelector('h2')?.focus();
   }
 })();
