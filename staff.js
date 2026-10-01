@@ -49,6 +49,8 @@
     $('add-application').disabled = busy || stale || creating;
     $('save-draft').disabled = busy || stale || !unsaved;
     $('publish').disabled = busy || stale || unsaved || !pending;
+    $('view-published').href = './' + (projectId ? '?project=' + encodeURIComponent(projectId) : '');
+    $('dirty-label').textContent = unsaved ? 'Unsaved' : pending ? 'Draft' : 'Published';
     $('import-file').disabled = busy || stale;
     $('preview').setAttribute('aria-disabled', String(busy || unsaved));
     $('preview').href = './?preview=draft' + (projectId ? '&project=' + encodeURIComponent(projectId) : '');
@@ -274,11 +276,27 @@
   $('reset-project').addEventListener('click', () => { delete working.projectOverrides[projectId]; fillEditor(); });
   $('reset-model').addEventListener('click', () => { delete working.modelOverrides[modelId]; fillModel(); refresh(); });
   $('remove-application').addEventListener('click', () => {
-    if (!added() || !window.confirm('Remove this staff-added application from the draft? It stays on the published map until you save and publish.')) return;
-    delete working.newApplications[projectId]; projectId = state.projects[0]?.project_no;
-    fillProjectOptions(); fillEditor(); message('Removed from your edits. Save and publish to remove it from your browser preview.'); $('project-select').focus();
+    if (!added()) return;
+    $('remove-dialog').showModal(); $('cancel-remove').focus();
   });
-  $('publish').addEventListener('click', () => perform('publish', {}, 'Published. Open or refresh ' + mapName + ' to see your changes.'));
+  $('cancel-remove').addEventListener('click', () => $('remove-dialog').close());
+  $('confirm-remove').addEventListener('click', () => {
+    $('remove-dialog').close();
+    if (!added()) return;
+    delete working.newApplications[projectId]; projectId = state.projects[0]?.project_no;
+    fillProjectOptions(); fillEditor(); message('Project removed from the draft. Save, then review and publish the removal.'); $('project-select').focus();
+  });
+  $('publish').addEventListener('click', () => {
+    const changes = SurreyStaffReview.changes(state.published.data, state.draft, state.projects, state.models);
+    $('publish-changes').replaceChildren(...changes.map(change => element('li', change)));
+    $('publish-scope').textContent = browserOnly ? 'These changes will appear in your browser preview. Other visitors will not see them.' : 'These changes will replace the published version of this local map.';
+    $('publish-dialog').showModal(); $('cancel-publish').focus();
+  });
+  $('cancel-publish').addEventListener('click', () => $('publish-dialog').close());
+  $('confirm-publish').addEventListener('click', () => {
+    $('publish-dialog').close();
+    perform('publish', {}, 'Published. View the map to check your changes.');
+  });
   $('reload').addEventListener('click', () => { if (!dirty() || window.confirm('Discard unsaved edits and reload the saved workspace? Export first to keep a copy.')) load(); });
   $('export').addEventListener('click', () => {
     capture(); const data = clone(working);

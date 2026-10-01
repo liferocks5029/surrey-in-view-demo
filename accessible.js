@@ -174,7 +174,7 @@
       document.querySelectorAll('[data-map-link]').forEach(anchor => { anchor.href = './?preview=draft'; });
       document.querySelector('[aria-current="page"]').href = 'accessible.html?preview=draft';
     }
-    projects = data.developments.features.filter(feature => models(feature).length > 0 || (SurreyPublishing.state.mode === 'draft' && feature.properties.STAFF_ADDED));
+    projects = data.developments.features.filter(feature => models(feature).length > 0 || feature.properties.STAFF_ADDED);
     if (query.get('project')) { $('search').value = query.get('project'); $('filter').value = 'all'; }
     $('search').addEventListener('input', () => { limit = 20; render(); }); $('filter').addEventListener('change', () => { limit = 20; render(); });
     $('more').addEventListener('click', () => { limit += 20; render(true); }); render();

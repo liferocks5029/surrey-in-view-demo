@@ -3,6 +3,7 @@
   const aliases={
     Groceries:'grocery supermarket food market',
     Pharmacy:'drugstore chemist prescriptions',
+    Bank:'banks banking branch branches credit union rbc royal bank td canada trust scotiabank bmo cibc national vancity coast capital prospera envision beem blueshore',
     Childcare:'daycare day care child care preschool nursery',
     University:'college campus higher education',
     'Elementary school':'primary school',
@@ -37,7 +38,7 @@
     'Furniture store':'furniture ikea jysk brick leons structube',
     'Neighbourhood':'neighborhood community'
   };
-  const words={groceries:'grocery',daycares:'daycare',schools:'school',universities:'university',colleges:'college',parks:'park',pharmacies:'pharmacy',hospitals:'hospital',libraries:'library',museums:'museum',galleries:'gallery',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stations:'station',trains:'train',gyms:'gym',hotels:'hotel',stores:'store',centers:'centre',centres:'centre',center:'centre',neighborhoods:'neighbourhood',neighbourhoods:'neighbourhood',neighborhood:'neighbourhood',sports:'sport',cinemas:'cinema',movies:'movie',theatres:'theatre',theaters:'theatre',theater:'theatre',concerts:'concert',arcades:'arcade',attractions:'attraction',venues:'venue'};
+  const words={banks:'bank',branches:'branch',groceries:'grocery',daycares:'daycare',schools:'school',universities:'university',colleges:'college',parks:'park',pharmacies:'pharmacy',hospitals:'hospital',libraries:'library',museums:'museum',galleries:'gallery',courts:'court',fields:'field',pools:'pool',rinks:'rink',arenas:'arena',stations:'station',trains:'train',gyms:'gym',hotels:'hotel',stores:'store',centers:'centre',centres:'centre',center:'centre',neighborhoods:'neighbourhood',neighbourhoods:'neighbourhood',neighborhood:'neighbourhood',sports:'sport',cinemas:'cinema',movies:'movie',theatres:'theatre',theaters:'theatre',theater:'theatre',concerts:'concert',arcades:'arcade',attractions:'attraction',venues:'venue'};
   function normalize(value){
     return String(value||'').normalize('NFKD').replace(/[\u0300-\u036f]/g,'').toLowerCase()
       .replace(/\b(?:day|child)\s+care\b/g,'childcare').replace(/\bdaycares?\b/g,'childcare')
@@ -45,7 +46,7 @@
   }
   function destinationGroups(available){
     const groups=[
-      ['Everyday essentials',['SkyTrain station','Groceries','Pharmacy','Park','Bus stop','Gym','Playground','Hospital']],
+      ['Everyday essentials',['SkyTrain station','Groceries','Pharmacy','Bank','Park','Bus stop','Gym','Playground','Hospital']],
       ['Schools & childcare',['Childcare','Elementary school','Secondary school','Middle school','Combined school','Other school','University','Library']],
       ['Food & coffee',['Fast food','Restaurant','Coffee shop']],
       ['Entertainment',['Cinema','Theatre','Concert venue','Bowling alley','Arcade','Family attraction']],

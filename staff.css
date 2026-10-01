@@ -28,3 +28,5 @@ input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{b
   #location-results strong{font-size:14px}#location-results small{font-size:12px}
 }
 @media(max-width:500px){.two-column{grid-template-columns:minmax(0,1fr);gap:0}.editor-heading{gap:8px}.history-list li{gap:8px;align-items:flex-start}}
+
+.record-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:20px 0 0;font-size:12px}.record-actions a{margin-left:auto;text-decoration:none}dialog{border:1px solid #e5e5e8;border-radius:20px;padding:28px;max-width:520px;width:calc(100% - 32px);max-height:85vh;color:#1d1d1f;box-shadow:0 24px 80px #0002}dialog::backdrop{background:#1115}dialog h2{font-size:23px;letter-spacing:-.5px;margin:0 0 10px}dialog p{font-size:14px;color:#62626a;line-height:1.5}#publish-changes{padding-left:20px;max-height:40vh;overflow:auto;font-size:14px}#publish-changes li{padding:7px 0}.dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}

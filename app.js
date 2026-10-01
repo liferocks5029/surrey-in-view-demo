@@ -453,9 +453,9 @@ else require(['esri/Map','esri/Basemap','esri/layers/WebTileLayer','esri/views/S
   if(window.__SURREY_DATA)document.querySelectorAll('a[href^="data/"]').forEach(a=>a.href=dataURL(a.getAttribute('href')));
   const failed=results.flatMap((r,i)=>r.status==='rejected'?[configs[i].title]:[]);
   if(!data.developments)throw Error('Development data could not load.');
-  // Keep source records intact on disk; the public catalogue contains modelled sites only.
+  // Start with modelled sites. Staff additions remain visible as pins until a model is supplied.
   const modelledProjects=new Set((data['proposed-buildings']?.features||[]).map(f=>f.properties.project_no));
-  data.developments={...data.developments,features:data.developments.features.filter(f=>modelledProjects.has(f.properties.PROJECT_NO)||(SurreyPublishing.state.mode==='draft'&&f.properties.STAFF_ADDED))};
+  data.developments={...data.developments,features:data.developments.features.filter(f=>modelledProjects.has(f.properties.PROJECT_NO)||f.properties.STAFF_ADDED)};
   applications=data.developments.features.map(f=>({id:f.properties.OBJECTID,number:f.properties.PROJECT_NO,name:f.properties.DISPLAY_NAME||'',status:f.properties.STATUS,description:f.properties.DESCRIPTION||'',raw:f.properties,feature:f,...centre(f)}));
   applications.sort((a,b)=>distance(a,areas.centre)-distance(b,areas.centre));
   for(const status of [...new Set(applications.map(p=>p.status))].sort())$('status-filter').append(new Option(status,status));
